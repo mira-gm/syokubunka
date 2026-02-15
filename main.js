@@ -332,4 +332,18 @@ document.getElementById("btn-next-era").onclick = () => {
 // ===============================
 document.getElementById("btn-go-zukan").onclick = () => {
   document.getElementById("home-screen").classList.add("hidden");
-  document.getElementById("zukan-screen").classList.remove("
+  document.getElementById("zukan-screen").classList.remove("hidden");
+  buildEraTabs();
+  renderZukan();
+};
+
+document.getElementById("btn-go-home").onclick = () => {
+  document.getElementById("zukan-screen").classList.add("hidden");
+  document.getElementById("home-screen").classList.remove("hidden");
+  renderHome();
+};
+
+// ===============================
+// 初期化
+// ===============================
+loadCSV();
