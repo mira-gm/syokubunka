@@ -1,5 +1,5 @@
 // ===============================
-// パート②：ゲームロジック（CSV読み込み＋2画面UI）
+// パート2：ゲームロジック（CSV読み込み＋2画面UI）
 // ===============================
 
 // ---- 時代一覧 ----
@@ -9,8 +9,8 @@ const eras = [
 ];
 
 let currentEraIndex = 0;
-let viewEra = null;      // 図鑑で見る時代
-let zukanTab = "素材";   // 図鑑の分類タブ
+let viewEra = null;
+let zukanTab = "素材";
 
 // 所持データ
 const owned = {
@@ -22,7 +22,7 @@ const owned = {
 // 完成した料理
 const completed = new Set();
 
-// CSVデータ格納
+// CSVデータ
 let dataList = [];
 let recipes = [];
 
@@ -86,32 +86,26 @@ function canCookAnyRecipe(){
 }
 
 // ===============================
-// ホーム画面の表示更新
+// ホーム画面
 // ===============================
 function renderHome(){
   const eraName = eras[currentEraIndex];
   document.getElementById("era").textContent = "時代：" + eraName;
 
   const imageMap = {
-    "縄文": "./img/01jomon.png",
-    "弥生": "./img/02yayoi.png",
-    "古墳・奈良": "./img/03kofunnara.png",
-    "平安・鎌倉": "./img/04heiankamakura.png",
-    "室町・安土桃山": "./img/05muromachiadutimomoyama.png",
-    "江戸": "./img/06edo.png",
-    "明治・大正": "./img/07meijitaisyo.png",
-    "昭和・平成": "./img/08syowaheisei.png"
+    "縄文": "./data/01jomon.png",
+    "弥生": "./data/02yayoi.png",
+    "古墳・奈良": "./data/03kofunnara.png",
+    "平安・鎌倉": "./data/04heiankamakura.png",
+    "室町・安土桃山": "./data/05muromachiadutimomoyama.png",
+    "江戸": "./data/06edo.png",
+    "明治・大正": "./data/07meijitaisyo.png",
+    "昭和・平成": "./data/08syowaheisei.png"
   };
   document.getElementById("era-image").src = imageMap[eraName];
 
   const cookBtn = document.getElementById("btn-cook");
-  if (canCookAnyRecipe()) {
-    cookBtn.disabled = false;
-    cookBtn.classList.add("enabled");
-  } else {
-    cookBtn.disabled = true;
-    cookBtn.classList.remove("enabled");
-  }
+  cookBtn.disabled = !canCookAnyRecipe();
 }
 
 // ===============================
@@ -139,7 +133,7 @@ function buildEraTabs(){
 }
 
 // ===============================
-// 図鑑：一覧表示
+// 図鑑：一覧
 // ===============================
 function renderZukan(){
   const eraName = viewEra || eras[currentEraIndex];
@@ -280,6 +274,22 @@ document.getElementById("btn-cook").onclick = () => {
 
   renderHome();
   renderZukan();
+};
+
+// ===============================
+// ★ 次の時代へ
+// ===============================
+document.getElementById("btn-next-era").onclick = () => {
+  if (currentEraIndex < eras.length - 1) {
+    currentEraIndex++;
+    viewEra = null;
+    log(`<span class="era-msg">時代が進みました：${eras[currentEraIndex]}</span>`);
+    renderHome();
+    buildEraTabs();
+    renderZukan();
+  } else {
+    log("これ以上進む時代はありません。");
+  }
 };
 
 // ===============================

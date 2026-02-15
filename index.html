@@ -20,7 +20,6 @@
       position: relative;
     }
 
-    /* 右上の時代画像 */
     .era-image {
       position: absolute;
       top: 6px;
@@ -41,7 +40,6 @@
       margin: 0 0 8px;
     }
 
-    /* 行動ボタン（ホーム） */
     .actions {
       display: grid;
       grid-template-columns: repeat(3,1fr);
@@ -72,7 +70,6 @@
       padding: 12px;
     }
 
-    /* ログ（中央） */
     .log {
       background:#111;
       color:#0f0;
@@ -86,7 +83,6 @@
       margin-top:8px;
     }
 
-    /* 図鑑：時代タブ */
     .era-tabs {
       display: flex;
       gap: 6px;
@@ -108,7 +104,6 @@
       font-weight: bold;
     }
 
-    /* 図鑑：素材/技術/道具/料理タブ */
     .info-tabs {
       display: flex;
       gap: 6px;
@@ -129,7 +124,6 @@
       font-weight: bold;
     }
 
-    /* 図鑑：一覧 */
     .info-box {
       background: #fff;
       border-radius: 10px;
@@ -139,7 +133,6 @@
       overflow-y: auto;
     }
 
-    /* 画面非表示 */
     .hidden {
       display: none;
     }
@@ -155,7 +148,6 @@
 <body>
   <div class="app">
 
-    <!-- 右上画像 -->
     <img id="era-image" class="era-image" src="" alt="時代画像">
 
     <h1>日本食文化発展ゲーム</h1>
@@ -164,7 +156,6 @@
     <!-- ▼ ホーム画面 ▼ -->
     <div id="home-screen">
 
-      <!-- 行動ボタン -->
       <div class="actions">
         <button id="btn-material">素材探索</button>
         <button id="btn-tech">技術研究</button>
@@ -173,20 +164,19 @@
 
       <button id="btn-cook" disabled class="cook-btn">料理を作る！</button>
 
-      <!-- ログ -->
+      <!-- ★ 追加：次の時代へボタン -->
+      <button id="btn-next-era" style="margin-top:8px; width:100%;">次の時代へ</button>
+
       <div class="log" id="log"></div>
 
-      <!-- 図鑑へ -->
       <button id="btn-go-zukan" style="margin-top:8px; width:100%;">図鑑へ</button>
     </div>
 
     <!-- ▼ 図鑑画面 ▼ -->
     <div id="zukan-screen" class="hidden">
 
-      <!-- 時代タブ -->
       <div id="era-tabs" class="era-tabs"></div>
 
-      <!-- タブ -->
       <div class="info-tabs">
         <div class="info-tab active" data-type="素材">素材</div>
         <div class="info-tab" data-type="技術">技術</div>
@@ -194,17 +184,13 @@
         <div class="info-tab" data-type="料理">料理</div>
       </div>
 
-      <!-- 一覧 -->
       <div class="info-box" id="zukan-info-box"></div>
 
-      <!-- ホームへ -->
       <button id="btn-go-home" style="margin-top:8px; width:100%;">ホームへ</button>
     </div>
 
   </div>
 
-  <!-- パート２（main.js） -->
   <script src="./main.js"></script>
 </body>
 </html>
-
