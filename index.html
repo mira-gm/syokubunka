@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>日本食文化発展ゲーム</title>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background:#f7f7f7;
+      margin:0;
+      font-size: 16px;
+    }
+
+    .app {
+      max-width: 1000px;
+      margin: auto;
+      padding: 12px;
+      position: relative; /* ★ 画像の基準として追加 */
+    }
+
+    /* ★ 右上の時代画像（控えめサイズ） */
+    .era-image {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 100px;   /* 小さめで主張しすぎない */
+      height: auto;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    h1 { font-size: 1.6rem; margin: 0 0 6px; }
+    h2 { font-size: 1.2rem; margin: 0 0 12px; }
+
+    button {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    /* 行動ボタン */
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    /* 料理ボタン（強調） */
+    .cook-btn {
+      margin-top: 8px;
+      width: 100%;
+      background: #b33;
+    }
+    .cook-btn.enabled {
+      background: #ff5722;
+      animation: pulse 1.2s infinite;
+    }
+
+    /* 次の時代へボタン（強調） */
+    .next.enabled {
+      background: #ff9800;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0px rgba(255,87,34,0.7); }
+      50% { box-shadow: 0 0 12px rgba(255,87,34,1); }
+      100% { box-shadow: 0 0 0px rgba(255,87,34,0.7); }
+    }
+
+    /* ★ 時代タブ */
+    .era-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .era-tab {
+      padding: 6px 10px;
+      background: #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: 0.2s;
+    }
+    .era-tab.active {
+      background: #2563eb;
+      color: #fff;
+      font-weight: bold;
+      transform: scale(1.05);
+    }
+
+    /* グリッド */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 10px;
+    }
+    .box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      min-height: 160px;
+    }
+    .box h3 { margin: 0 0 6px; font-size: 1rem; }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    li { padding: 3px 0; }
+
+    .next {
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    /* ログ（読みやすく調整） */
+    .log {
+      background:#111;
+      color:#0f0;
+      border-radius:12px;
+      padding:12px;
+      height:240px;
+      overflow:auto;
+      font-family: monospace;
+      font-size:0.95rem;
+      line-height: 1.6;
+      letter-spacing: 0.5px;
+      margin-top:10px;
+    }
+
+    /* 料理完成メッセージ（強調） */
+    .log .recipe-msg {
+      color: #ffb74d;
+      font-weight: bold;
+    }
+
+    /* 時代進行メッセージ（強調） */
+    .log .era-msg {
+      color: #4fc3f7;
+      font-weight: bold;
+    }
+
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: repeat(2,1fr); }
+    }
+
+    /* ★追加：名前強調用 */
+    .item-name {
+      color: #9be7a5;
+      font-weight: bold;
+    }
+
+    .recipe-name {
+      color: #ffe082;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- ★ 追加：時代画像（JSで切り替え） -->
+    <img id="era-image" class="era-image" src="" alt="時代画像">
+
+    <h1>日本食文化発展ゲーム</h1>
+    <h2 id="era">時代：</h2>
+
+    <!-- ★ 時代タブ -->
+    <div id="era-tabs" class="era-tabs"></div>
+
+    <!-- 行動ボタン -->
+    <div class="actions">
+      <button id="btn-material">素材探索</button>
+      <button id="btn-tech">技術研究</button>
+      <button id="btn-tool">道具開発</button>
+    </div>
+
+    <!-- 料理ボタン -->
+    <button id="btn-cook" disabled class="cook-btn">料理を作る！</button>
+
+    <!-- 情報表示 -->
+    <div class="grid">
+      <div class="box"><h3>素材</h3><ul id="list-material"></ul></div>
+      <div class="box"><h3>技術</h3><ul id="list-tech"></ul></div>
+      <div class="box"><h3>道具</h3><ul id="list-tool"></ul></div>
+      <div class="box"><h3>料理</h3><ul id="list-recipe"></ul></div>
+    </div>
+
+    <!-- 次の時代へ -->
+    <button class="next" id="btn-next" disabled>次の時代へ</button>
+
+    <!-- ログ -->
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- ★ この下にパート②〜④を貼る -->
+
+
+<script>
+// ===============================
+// パート②：データ定義（パーサー＋初期化）
+// ===============================
+
+// ---- 時代一覧 ----
+const eras = [
+  "縄文","弥生","古墳・奈良","平安・鎌倉",
+  "室町・安土桃山","江戸","明治・大正","昭和・平成"
+];
+
+let currentEraIndex = 0;
+let viewEra = null;   // ★ 時代タブで「見る時代」
+
+
+// ===============================
+// 正規 CSV パーサー（ダブルクォート対応）
+// ===============================
+// 例: "川魚（鮎、鮭）","火の利用（焼く）","縄文土器"
+function parseCSV(csvText){
+  const lines = csvText.trim().split(/\r?\n/);
+
+  // ヘッダー行
+  const header = lines[0].match(/"([^"]*)"/g).map(s => s.replace(/"/g,""));
+
+  const data = [];
+
+  for (let i = 1; i < lines.length; i++){
+    const row = lines[i];
+    if (!row.trim()) continue;
+
+    // "値","値","値" を抽出
+    const cols = row.match(/"([^"]*)"/g).map(s => s.replace(/"/g,""));
+
+    const obj = {};
+    header.forEach((key, idx) => {
+      obj[key] = cols[idx] ?? "";
+    });
+
+    data.push(obj);
+  }
+
+  return data;
+}
+
+
+// ===============================
+// カンマ区切りの素材・技術・道具を配列化
+// （空欄は []）
+// ===============================
+function parseList(str){
+  if (!str) return [];
+  return str.split("、").join(",")  // 全角読点 → カンマ統一
+            .split("＋").join(",")  // ＋も区切りとして扱う
+            .split(",")
+            .map(s => s.trim())
+            .filter(s => s);
+}
+
+
+// ===============================
+// ログ出力
+// ===============================
+function log(msg){
+  const el = document.getElementById("log");
+  el.innerHTML = msg + "<br>" + el.innerHTML;
+}
+
+
+// ===============================
+// 所持データ
+// ===============================
+const owned = {
+  素材: new Set(),
+  技術: new Set(),
+  道具: new Set()
+};
+
+// 完成した料理
+const completed = new Set();
+
+
+// ===============================
+// ★ CSV 本体（素材技術道具リスト・料理リスト）は
+// ★ この下に続けて貼る
+// ===============================
+</script>
+
+<script>
+// ===============================
+// パート③：素材・技術・道具リスト CSV（正規 CSV）
+// ===============================
+
+const dataCSV = `
+"時代","分類","名前","メッセージ"
+"縄文","素材","塩","塩が使われるようになった。料理の味・保存の基本。"
+"縄文","素材","川魚（鮎・鮭）","川魚を発見。食卓に彩りをもたらす。"
+"縄文","素材","貝","貝を採取。食材の幅が広がる。"
+"縄文","素材","ドングリ","ドングリを採取。加工し長期保存が可能。"
+"縄文","素材","鹿肉","鹿の狩猟に成功。栄養豊富な肉が活力をもたらす。"
+"縄文","技術","火の利用（焼く）","火で食材を焼く技術を発見。調理法が広まる。"
+"縄文","技術","煮る","煮る技術を発見。柔らかい食事が可能に。"
+"縄文","技術","干す","干すの方法を発見。保存が可能になる。"
+"縄文","道具","石皿","石皿が作られる。火で熱して焼く調理法が広まる。"
+"縄文","道具","縄文土器","縄文土器が作られる。煮込みの調理法が広まる。"
+
+"弥生","素材","米","米作りが広まる。人々の主食となる。"
+"弥生","素材","大豆","大豆が伝わる。味噌の原料となる。"
+"弥生","技術","発酵Lv1（どぶろく・なれずし）","発酵技術が伝わる。保存食と酒が生まれる。"
+"弥生","道具","弥生土器","弥生土器が作られる。煮込みがより便利に。"
+
+"古墳・奈良","素材","野菜Lv1（大根・ごぼう）","野菜の栽培が広まる。大根、ごぼう、ねぎ、サトイモなど。"
+"古墳・奈良","素材","小麦粉","小麦栽培が広まる。団子状にして茹でて食べられる。"
+"古墳・奈良","素材","海魚Lv1（鯖・鯛）","保存技術が進化し海魚が普及。"
+"古墳・奈良","素材","味噌","発酵技術が進化し味噌が普及。"
+"古墳・奈良","素材","山椒","山椒が普及。香辛料として料理の風味づけに使用。"
+"古墳・奈良","技術","炊く","炊く技術が定着。米の美味しさが普及。"
+"古墳・奈良","技術","塩漬け","塩漬け技術が伝わる。魚や野菜の保存が可能に。"
+"古墳・奈良","道具","釜","土器の生成技術が進化し釜が作られる。煮炊きに活用。"
+"古墳・奈良","道具","かめ","かめの使用が一般化。発酵や保存に便利。"
+"古墳・奈良","道具","臼と杵","臼と杵が伝わる。餅作りや穀物加工に使用。"
+
+"平安・鎌倉","素材","豆腐","豆腐の作り方が伝わる。精進料理にたんぱくの旨味を添える。"
+"平安・鎌倉","素材","醤油","味噌作りの過程から醤油を発見。料理の旨味をさらに深め、保存性も向上。"
+"平安・鎌倉","素材","野菜Lv2（ナス・きゅうり）","ナス、きゅうり、ネギなどの栽培が広まる。"
+"平安・鎌倉","技術","精進料理技術","禅寺で精進料理技術が発展。ゴマ豆腐や高野豆腐などが作られる。"
+"平安・鎌倉","技術","出汁とりLv1","昆布や干し椎茸から出汁をとる技術が発展。料理に味わいを深める。"
+"平安・鎌倉","技術","漬物技術","塩漬けや味噌漬けなど漬物技術が発展。食材の保存が容易に。"
+"平安・鎌倉","技術","製麺技術","小麦粉を練って長く切る製麺技術が発展。麵料理が登場。"
+"平安・鎌倉","技術","甘味技術","小豆を煮た餡や黒糖など甘味技術が発展。"
+"平安・鎌倉","道具","鉄鍋","鉄鍋が伝わる。煮炊きがより効率化。"
+"平安・鎌倉","道具","包丁Lv1","包丁が広く使われる。下ごしらえとして簡易的に切るのみ。"
+
+"室町・安土桃山","素材","海魚Lv2（アジ・イワシ）","漁業の発展に伴いアジ・イワシなど海魚の利用が広まる。食文化がより豊かに。"
+"室町・安土桃山","素材","砂糖","南蛮貿易により砂糖が伝来。菓子文化に革命をもたらす。"
+"室町・安土桃山","素材","唐辛子","唐辛子が伝わる。料理に鮮烈な辛味が加わり一層華やかになる。"
+"室町・安土桃山","素材","からし・わさび","薬として扱われていたからし・わさびが食材として使われるように。料理に刺激を添える。"
+"室町・安土桃山","技術","膳料理様式","武家の儀礼や礼法の普及につれ、膳料理様式が整えられる。"
+"室町・安土桃山","技術","茶の湯様式","わび・さびや一期一会などの茶の湯文化が広まる。"
+"室町・安土桃山","技術","揚げる","揚げる技術が伝わる。新たな調理法として普及。"
+"室町・安土桃山","技術","砂糖利用技術","撹拌や結晶化など砂糖利用の技術が伝来。"
+"室町・安土桃山","道具","鉄鍋改良","小型・中型など用途別の鉄鍋が作られる。"
+"室町・安土桃山","道具","包丁Lv2","包丁が魚用・野菜用・肉用に分化。精密な切り方ができるようになる。"
+"室町・安土桃山","道具","製菓道具","熱の伝わりが早い銅鍋や形を整える型など、製菓道具が普及。"
+
+"江戸","素材","江戸前魚","マグロやうなぎなど、江戸前でとれた魚が普及する。"
+"江戸","素材","鶏肉","鶏の肉。滋養食として食用が広がり、鍋や汁物などに用いられる。"
+"江戸","素材","油","なたね油やごま油など、天ぷらに使用する油の流通が盛んになる。"
+"江戸","素材","そば","麺状にしたそばが普及。そば粉のみの十割そばや小麦粉を混ぜた二八そばなど作られる。"
+"江戸","素材","野菜Lv3（ニンジン・白菜）","ニンジン、白菜、サツマイモなどの栽培が広まる。"
+"江戸","素材","のり","板状に加工された海苔が普及。庶民が日常的に使う食材として定着。"
+"江戸","素材","あんこ","砂糖と小豆を練った甘い餡が広まる。和菓子の基本材料として使われる。"
+"江戸","技術","酢〆","魚を酢でしめる技術が発展。生魚の保存性が向上。"
+"江戸","技術","天ぷら揚げ","食材に小麦粉の衣をつけて油で揚げる調理法が普及。"
+"江戸","技術","出汁とりLv2","鰹節を用いた出汁が広まる。吸い物や煮物、味噌汁など和食の味の基盤となる。"
+"江戸","技術","炭火焼き","炭火を用いた焼き技術が発展し、食材を香ばしく焼き上げる調理法が広まる。"
+"江戸","技術","和菓子製菓技術","製菓技術が発展し、餡や生地の練り・成形・蒸し・焼きなどの技術が確立。現代和菓子の根幹。"
+"江戸","道具","包丁Lv3","魚・野菜・肉の専用包丁が広まる。現代の刺身包丁・出刃包丁の原型となる。"
+"江戸","道具","揚げ鍋","天ぷらを揚げる用の深底鍋が普及。"
+"江戸","道具","屋台調理器具","小鍋やざるなど、そばを素早く提供するための器具が普及。"
+"江戸","道具","土鍋","家庭用の小型鍋など鍋料理用の土鍋が広く普及する。"
+
+"明治・大正","素材","牛肉","近代化と西洋文化の影響で牛肉が普及。肉料理が新しい食文化として受け入れられる。"
+"明治・大正","素材","野菜Lv4（じゃがいも・たまねぎ）","じゃがいも、たまねぎ、キャベツなどが栽培され広く普及する。"
+"明治・大正","素材","豚肉","豚の飼育と流通が発展。豚肉が身近な食用肉として使われるようになる。"
+"明治・大正","素材","コショウ","西洋料理の普及とともに胡椒が一般化。料理に香りと辛味を加える調味料として定着。"
+"明治・大正","素材","スパイス","カレー用に伝わった複合香辛料。洋食屋で提供される料理を彩り、独特の風味を加える。"
+"明治・大正","素材","デミグラスソース","デミグラスソースが伝わる。肉料理に濃厚な旨味を加える。"
+"明治・大正","素材","卵","洋食や洋菓子の広まりとともに、卵が料理に欠かせない食材として定着。"
+"明治・大正","技術","割下煮込み技術","醤油・砂糖・みりんを合わせた割下を使い、牛肉や野菜の旨味を引き出す技法が広まる。"
+"明治・大正","技術","洋風応用調理","肉や野菜を煮たり焼いたりしてソースや具材と合わせる技術。洋食の多様な料理に応用される。"
+"明治・大正","技術","フライ技術","パン粉をつけて揚げる技術が普及。洋食屋でさまざまなフライ料理が作られる。"
+"明治・大正","技術","洋菓子製菓技術","西洋の製菓技術が伝わる。小麦粉や卵、バターで生地を作り、オーブンで焼き、クリームを加えた洋菓子作りが広まった。"
+"明治・大正","道具","厚底鍋","厚底の鍋が普及。洋風煮込み料理を焦がさず安定して作れる。"
+"明治・大正","道具","フライパン","フライパンが普及。炒め物や薄焼き卵など、洋食調理の道具として用いられる。"
+"明治・大正","道具","オーブン","オーブンが普及。洋菓子や焼き料理に用いられる。"
+
+"昭和・平成","素材","中華麺","小麦粉を主原料とした麺。ラーメンとして広まり、町中華や専門店で使われる。"
+"昭和・平成","素材","ソース","ウスターソースなど野菜や果実、香辛料を煮詰めて作る調味料。お好み焼きや揚げ物など庶民料理で広く使用。"
+"昭和・平成","素材","パスタ","小麦粉を主原料とした乾麺。洋食文化の広がりとともに家庭や外食で使われる。"
+"昭和・平成","技術","中華応用調理","中華の調理技術を応用し、炒め・煮込み・蒸しなどで多様な料理を作る調理法が広まる。"
+"昭和・平成","技術","ファストフード技術","肉や野菜を手早く焼き、パンやバンズなどで仕上げる技術。短時間で料理提供するファストフード店の普及とともに広まる。"
+"昭和・平成","技術","粉物調理技術","小麦粉の生地を練り、焼く・蒸す・揚げる調理法。お好み焼き、たこ焼き、もんじゃ焼きなど粉物料理の基盤。"
+"昭和・平成","技術","下味揚げ","調味料で下味をつけて揚げる技術が普及。唐揚げや竜田揚げなど。"
+"昭和・平成","道具","中華鍋","肉や野菜を強火で炒めたり煮込んだりするための深めの鍋。"
+"昭和・平成","道具","鉄板","均一に加熱できる調理用の板。お好み焼きやハンバーガーなど焼き物料理に使われる。"
+`;
+</script>
+
+
+<script>
+// ===============================
+// パート④：料理リスト CSV（正規 CSV）
+// ===============================
+
+const recipeCSV = `
+"時代","料理","必要素材","必要技術","必要道具","メッセージ"
+"縄文","焼き魚","川魚（鮎・鮭）","火の利用（焼く）","","川魚を焼く方法を発見！焼き魚が広く食べられるようになった！"
+"縄文","煮魚","川魚（鮎・鮭）","煮る","縄文土器","川魚を縄文土器で煮る方法を発見！煮魚が広く食べられるようになった！"
+"縄文","干し魚","川魚（鮎・鮭）","干す","","川魚を干して保存する方法を発見！干し魚が作られるようになった！"
+"縄文","貝の煮込み","貝","煮る","縄文土器","貝を縄文土器で煮る方法を発見！貝の煮込みが広く食べられるようになった！"
+"縄文","ドングリ平焼き","ドングリ","火の利用（焼く）","石皿","ドングリを石皿で焼く方法を発見！ドングリ平焼きが広く食べられるようになった！"
+"縄文","焼き鹿肉","鹿肉","火の利用（焼く）","","鹿肉を焼く方法を発見！焼き鹿肉が広く食べられるようになった！"
+"縄文","鹿肉煮込み","鹿肉","煮る","縄文土器","鹿肉を縄文土器で煮る方法を発見！鹿肉煮込みが広く食べられるようになった！"
+"縄文","干し肉","鹿肉","干す","","鹿肉を干して保存する方法を発見！干し肉が作られるようになった！"
+
+"弥生","粥","米","煮る","弥生土器","米を煮る方法を発見！粥が広く食べられるようになった！"
+"弥生","なれずし","川魚（鮎・鮭）","発酵Lv1（どぶろく・なれずし）","弥生土器","川魚を発酵させて保存する方法を発見！なれずしが作られるようになった！"
+"弥生","どぶろく","米","発酵Lv1（どぶろく・なれずし）","弥生土器","米を発酵させる方法を発見！どぶろくが広く飲まれるようになった！"
+"弥生","干し米","米","干す","弥生土器","煮た米を干して保存する方法を発見！干し米が作られるようになった！"
+
+"古墳・奈良","ご飯","米","炊く","釜","米を釜で炊く方法を発見！ご飯が広く食べられるようになった！"
+"古墳・奈良","あつもの","野菜Lv1（大根・ごぼう）","煮る","釜","野菜や豆を釜で茹でた「あつもの」が広まる。煮物の原点。"
+"古墳・奈良","魚の塩漬け","海魚Lv1（鯖・鯛）","塩漬け","","海魚を塩漬けにすることにより長期保存が可能に。広く普及するようになった！"
+"古墳・奈良","餅","米","炊く","臼と杵","米を臼と杵でついて餅がつくられるようになる。手軽な保存食として広まる。"
+
+"平安・鎌倉","精進料理","豆腐","精進料理技術","包丁Lv1","植物のみを使った精進料理が確立。季節感あふれる膳が並ぶ。"
+"平安・鎌倉","煮物","醤油","出汁とりLv1","鉄鍋","野菜を醤油で煮込んだ煮物が普及。和食の定番に。"
+"平安・鎌倉","漬物","野菜Lv2（ナス・きゅうり）","漬物技術","かめ","野菜を塩や味噌で漬た漬物が普及。保存性と味を兼ね備えた副菜に。"
+"平安・鎌倉","うどん","小麦粉","製麺技術","包丁Lv1","練った小麦粉を包丁で切ったうどんが普及。"
+"平安・鎌倉","串団子","小麦粉","甘味技術","","米を丸めて串に刺した串団子が広まる。甘味の定番に。"
+
+"室町・安土桃山","本膳料理","","膳料理様式","包丁Lv2","武家の儀礼に沿って吸い物・焼物・煮物・飯・香の物などを揃え、豪華さと格式を重んじた本膳料理が広まる。"
+"室町・安土桃山","茶懐石","","茶の湯様式","鉄鍋改良","一汁三菜を基本とし、質素さと季節感を大切にした茶懐石が普及。"
+"室町・安土桃山","南蛮漬け","唐辛子","揚げる","鉄鍋改良","魚や鶏を油で揚げて酢・醤油・唐辛子で味付けした南蛮漬けが広まる。"
+"室町・安土桃山","刺身","海魚Lv2（アジ・イワシ）","","包丁Lv2","タイやアジなど鮮度の良い魚を薄切りにして生で食べる刺身が広まる。盛り付けの美しさも重視。"
+"室町・安土桃山","南蛮菓子","砂糖","砂糖利用技術","製菓道具","カステラや金平糖などが作られる。"
+
+"江戸","寿司","江戸前魚","酢〆","包丁Lv3","マグロ、イワシ、タコ、エビなどの握り寿司が登場。庶民の手軽な料理として広まる。"
+"江戸","天ぷら","油","天ぷら揚げ","揚げ鍋","アジやキス、ナスやカボチャなど屋台で揚げて供する天ぷらが広まる。庶民の手軽な食事として定着。"
+"江戸","屋台そば","そば","出汁とりLv2","屋台調理器具","屋台そば屋が町中に登場。安価で手軽に食べられる庶民の食事として広まる。"
+"江戸","鍋料理","野菜Lv3（ニンジン・白菜）","出汁とりLv2","土鍋","鍋料理が家庭で広まる。湯豆腐や野菜・魚の寄せ鍋など、多人数分を調理できる庶民料理。"
+"江戸","うなぎ蒲焼き","江戸前魚","炭火焼き","","うなぎを串に刺して炭火で香ばしく焼き、タレを絡めたかば焼きが人気を集める。夏の定番料理。"
+"江戸","和菓子","あんこ","和菓子製菓技術","製菓道具","まんじゅうや羊羹など和菓子が広まる。日常の楽しみのほか贈答品など甘味文化として定着。"
+
+"明治・大正","牛鍋","牛肉","割下煮込み技術","鉄鍋改良","すき焼きの原型。牛肉と野菜を鉄鍋で煮込む。都市の牛鍋屋で楽しまれた贅沢な鍋料理。"
+"明治・大正","カレーライス","スパイス","洋風応用調理","厚底鍋","スパイスで味付けし、じゃがいもや牛肉などを煮込んだ料理。洋食屋で提供され、外食文化として広く普及。"
+"明治・大正","コロッケ","野菜Lv4（じゃがいも・たまねぎ）","","揚げ鍋","じゃがいもを練って成形し、パン粉をつけて揚げる料理。"
+"明治・大正","とんかつ","豚肉","フライ技術","揚げ鍋","豚肉に衣をつけて揚げる料理。パン粉を使った洋風揚げ物として、洋食屋で親しまれる。"
+"明治・大正","オムライス","卵","洋風応用調理","フライパン","卵でご飯を包んだ料理。ケチャップライスを合わせた洋食屋の人気料理として洋食店で広まる。"
+"明治・大正","ハヤシライス","デミグラスソース","洋風応用調理","厚底鍋","デミグラスソースで牛肉と玉ねぎを煮込んだ、明治洋食屋で人気の一品。"
+"明治・大正","洋菓子","卵","","オーブン","ケーキ、プリン、シュークリームなど、西洋菓子が明治洋菓子店で楽しめるようになった。"
+
+"昭和・平成","ラーメン","中華麺","中華応用調理","中華鍋","しょうゆ・とんこつ・みそなど多彩なスープと中華麺を合わせた料理。広く定着し数多くの専門店が各地に開業。"
+"昭和・平成","ハンバーガー","牛肉","ファストフード技術","鉄板","パンに肉や野菜をはさみ、手早く提供する料理。ファーストフードチェーン店で広まり、外食文化を象徴する人気メニュー。"
+"昭和・平成","お好み焼き","ソース","粉物調理技術","鉄板","小麦粉の生地に具材を混ぜて焼き、ソースをかけて楽しむ料理。屋台や家庭で広まる。"
+"昭和・平成","スパゲッティ","パスタ","洋風応用調理","厚底鍋","パスタを茹でて具材やソースと合わせて仕上げる洋食料理。喫茶店や家庭の定番洋食として広まる。"
+"昭和・平成","中華料理","豚肉","中華応用調理","中華鍋","チャーハンや餃子、麻婆豆腐など町中華の定番料理。肉や野菜を炒めたり煮込んだ料理として広まる。"
+"昭和・平成","唐揚げ","鶏肉","下味揚げ","揚げ鍋","鶏肉に味をつけて揚げた唐揚げが広まる。家庭や外食で親しまれる。"
+`;
+</script>
+
+
+<script>
+// ===============================
+// パート⑤：ゲームロジック（render＋行動ボタン）
+// ===============================
+
+// ---- CSV をパースしてデータ化 ----
+const dataList = parseCSV(dataCSV);
+const recipes = parseCSV(recipeCSV);
+
+
+// ===============================
+// 料理が作れるかどうか判定
+// ===============================
+function canCookAnyRecipe(){
+  const era = viewEra || eras[currentEraIndex];
+
+  return recipes
+    .filter(r => r.時代 === era && !completed.has(r.料理))
+    .some(r => {
+      const needM = parseList(r.必要素材);
+      const needT = parseList(r.必要技術);
+      const needD = parseList(r.必要道具);
+
+      const okM = needM.length === 0 || needM.every(x => owned.素材.has(x));
+      const okT = needT.length === 0 || needT.every(x => owned.技術.has(x));
+      const okD = needD.length === 0 || needD.every(x => owned.道具.has(x));
+
+      return okM && okT && okD;
+    });
+}
+
+
+// ===============================
+// render（UI 更新）
+// ===============================
+function render(){
+  const eraName = viewEra || eras[currentEraIndex];
+  document.getElementById("era").textContent = "時代：" + eraName;
+
+  // ---- 時代タブ ----
+  const tabs = document.getElementById("era-tabs");
+  tabs.innerHTML = "";
+  eras.forEach((e,i)=>{
+    const div = document.createElement("div");
+    div.textContent = e;
+
+    const active = viewEra ? (viewEra === e) : (currentEraIndex === i);
+    div.className = "era-tab" + (active ? " active" : "");
+
+    div.onclick = () => {
+      if (e === eras[currentEraIndex]) {
+        viewEra = null;   // ★ 現在の時代を押したら viewEra を解除
+      } else {
+        viewEra = e;      // 他の時代ならその時代を見る
+      }
+      render();
+    };
+
+    tabs.appendChild(div);
+  });
+
+  // ---- 時代画像の切り替え ----
+  const imageMap = {
+    "縄文": "./01jomon.png",
+    "弥生": "./02yayoi.png",
+    "古墳・奈良": "./03kofunnara.png",
+    "平安・鎌倉": "./04heiankamakura.png",
+    "室町・安土桃山": "./05muromachiadutimomoyama.png",
+    "江戸": "./06edo.png",
+    "明治・大正": "./07meijitaisyo.png",
+    "昭和・平成": "./08syowaheisei.png"
+  };
+  const eraImage = document.getElementById("era-image");
+  eraImage.src = imageMap[eraName] || "";
+
+  // ---- 素材 ----
+  const listM = document.getElementById("list-material");
+  listM.innerHTML = "";
+  const eraMaterials = dataList.filter(d => d.分類 === "素材" && d.時代 === eraName);
+  eraMaterials.forEach(d => {
+    const li = document.createElement("li");
+    li.textContent = owned.素材.has(d.名前) ? d.名前 : "？？？";
+    listM.appendChild(li);
+  });
+  listM.innerHTML += `<li style="color:#888;">未開放：${eraMaterials.length - [...owned.素材].filter(x => eraMaterials.some(d=>d.名前===x)).length} 個</li>`;
+
+  // ---- 技術 ----
+  const listT = document.getElementById("list-tech");
+  listT.innerHTML = "";
+  const eraTechs = dataList.filter(d => d.分類 === "技術" && d.時代 === eraName);
+  eraTechs.forEach(d => {
+    const li = document.createElement("li");
+    li.textContent = owned.技術.has(d.名前) ? d.名前 : "？？？";
+    listT.appendChild(li);
+  });
+  listT.innerHTML += `<li style="color:#888;">未開放：${eraTechs.length - [...owned.技術].filter(x => eraTechs.some(d=>d.名前===x)).length} 個</li>`;
+
+  // ---- 道具 ----
+  const listD = document.getElementById("list-tool");
+  listD.innerHTML = "";
+  const eraTools = dataList.filter(d => d.分類 === "道具" && d.時代 === eraName);
+  eraTools.forEach(d => {
+    const li = document.createElement("li");
+    li.textContent = owned.道具.has(d.名前) ? d.名前 : "？？？";
+    listD.appendChild(li);
+  });
+  listD.innerHTML += `<li style="color:#888;">未開放：${eraTools.length - [...owned.道具].filter(x => eraTools.some(d=>d.名前===x)).length} 個</li>`;
+
+  // ---- 料理 ----
+  const listR = document.getElementById("list-recipe");
+  listR.innerHTML = "";
+  const eraRecipes = recipes.filter(r => r.時代 === eraName);
+  eraRecipes.forEach(r => {
+    const li = document.createElement("li");
+    li.textContent = completed.has(r.料理) ? r.料理 : "？？？";
+    listR.appendChild(li);
+  });
+  listR.innerHTML += `<li style="color:#888;">未開放：${eraRecipes.length - [...completed].filter(x => eraRecipes.some(r=>r.料理===x)).length} 個</li>`;
+
+  // ---- 料理ボタン ----
+  const cookBtn = document.getElementById("btn-cook");
+  if (canCookAnyRecipe()) {
+    cookBtn.disabled = false;
+    cookBtn.classList.add("enabled");
+  } else {
+    cookBtn.disabled = true;
+    cookBtn.classList.remove("enabled");
+  }
+
+  // ---- 次の時代へボタン（★料理全開放が条件）----
+  const nextBtn = document.getElementById("btn-next");
+  const eraRecipesAll = recipes.filter(r => r.時代 === eras[currentEraIndex]);
+  const allDone = eraRecipesAll.every(r => completed.has(r.料理));
+
+  if (allDone && viewEra === null) {
+    nextBtn.disabled = false;
+    nextBtn.classList.add("enabled");
+  } else {
+    nextBtn.disabled = true;
+    nextBtn.classList.remove("enabled");
+  }
+}
+
+
+// ===============================
+// 行動ボタン：素材探索
+// ===============================
+document.getElementById("btn-material").onclick = () => {
+  const era = eras[currentEraIndex];
+
+  const candidates = dataList.filter(d =>
+    d.分類 === "素材" &&
+    d.時代 === era &&
+    !owned.素材.has(d.名前)
+  );
+
+  if (candidates.length === 0) {
+    log("この時代の素材はすべて発見済み。");
+    return;
+  }
+
+  const item = candidates[Math.floor(Math.random() * candidates.length)];
+  owned.素材.add(item.名前);
+
+  log(`素材発見：<span class="item-name">${item.名前}</span><br>${item.メッセージ}`);
+  render();
+};
+
+
+// ===============================
+// 行動ボタン：技術研究
+// ===============================
+document.getElementById("btn-tech").onclick = () => {
+  const era = eras[currentEraIndex];
+
+  const candidates = dataList.filter(d =>
+    d.分類 === "技術" &&
+    d.時代 === era &&
+    !owned.技術.has(d.名前)
+  );
+
+  if (candidates.length === 0) {
+    log("この時代の技術はすべて習得済み。");
+    return;
+  }
+
+  const item = candidates[Math.floor(Math.random() * candidates.length)];
+  owned.技術.add(item.名前);
+
+  log(`技術習得：<span class="item-name">${item.名前}</span><br>${item.メッセージ}`);
+  render();
+};
+
+
+// ===============================
+// 行動ボタン：道具開発
+// ===============================
+document.getElementById("btn-tool").onclick = () => {
+  const era = eras[currentEraIndex];
+
+  const candidates = dataList.filter(d =>
+    d.分類 === "道具" &&
+    d.時代 === era &&
+    !owned.道具.has(d.名前)
+  );
+
+  if (candidates.length === 0) {
+    log("この時代の道具はすべて開発済み。");
+    return;
+  }
+
+  const item = candidates[Math.floor(Math.random() * candidates.length)];
+  owned.道具.add(item.名前);
+
+  log(`道具開発：<span class="item-name">${item.名前}</span><br>${item.メッセージ}`);
+  render();
+};
+
+
+// ===============================
+// 料理作成
+// ===============================
+document.getElementById("btn-cook").onclick = () => {
+  const era = eras[currentEraIndex];
+
+  const available = recipes.filter(r => {
+    const needM = parseList(r.必要素材);
+    const needT = parseList(r.必要技術);
+    const needD = parseList(r.必要道具);
+
+    const okM = needM.length === 0 || needM.every(x => owned.素材.has(x));
+    const okT = needT.length === 0 || needT.every(x => owned.技術.has(x));
+    const okD = needD.length === 0 || needD.every(x => owned.道具.has(x));
+
+    return (
+      r.時代 === era &&
+      !completed.has(r.料理) &&
+      okM && okT && okD
+    );
+  });
+
+  if (available.length === 0) return;
+
+  available.forEach(r => {
+    completed.add(r.料理);
+
+    const mats = parseList(r.必要素材).join("＋");
+    const techs = parseList(r.必要技術).join("＋");
+    const tools = parseList(r.必要道具).join("＋");
+
+    let formula = "";
+    if (mats) formula += mats;
+    if (techs) formula += (formula ? "＋" : "") + techs;
+    if (tools) formula += (formula ? "＋" : "") + tools;
+
+    log(`<span class="recipe-msg">料理完成：<span class="recipe-name">${r.料理}</span>＝${formula}<br> → ${r.メッセージ}</span>`);
+  });
+
+  render();
+};
+
+
+// ===============================
+// 次の時代へ
+// ===============================
+document.getElementById("btn-next").onclick = () => {
+  if (currentEraIndex < eras.length - 1) {
+    currentEraIndex++;
+    viewEra = null;
+
+    log(`<span class="era-msg">=== 時代進行：${eras[currentEraIndex]} ===</span>`);
+    render();
+  } else {
+    log(`<span class="era-msg">🎉 すべての時代をクリア！おめでとう！</span>`);
+  }
+};
+
+
+// ===============================
+// 初期表示
+// ===============================
+render();
+</script>
