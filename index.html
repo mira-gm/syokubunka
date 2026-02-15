@@ -40,44 +40,7 @@
       margin: 0 0 8px;
     }
 
-    .actions {
-      display: grid;
-      grid-template-columns: repeat(3,1fr);
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    button {
-      padding: 10px 8px;
-      border-radius: 8px;
-      border: none;
-      background: #2563eb;
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    button:disabled {
-      background: #aaa;
-      cursor: not-allowed;
-    }
-
-    .cook-btn {
-      width: 100%;
-      margin-top: 6px;
-      background: #b33;
-      font-size: 1rem;
-      padding: 12px;
-    }
-
-    /* ★ 押せるようになったボタンを光らせる */
-    button.enabled {
-      background: #b33;
-      color: #fff;
-      font-weight: bold;
-      box-shadow: 0 0 8px rgba(255, 80, 80, 0.6);
-    }
-
+    /* ログ（中央固定） */
     .log {
       background:#111;
       color:#0f0;
@@ -88,45 +51,69 @@
       font-family: monospace;
       font-size:0.8rem;
       line-height: 1.4;
-      margin-top:8px;
+      margin: 10px 0;
     }
 
-    .era-tabs {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      margin-bottom: 8px;
-    }
-    .era-tab {
-      padding: 4px 8px;
-      background: #ddd;
-      border-radius: 6px;
-      white-space: nowrap;
-      cursor: pointer;
-      font-size: 0.8rem;
-    }
-    .era-tab.active {
+    /* ボタン */
+    button {
+      padding: 10px 8px;
+      border-radius: 8px;
+      border: none;
       background: #2563eb;
       color: #fff;
-      font-weight: bold;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
     }
 
-    .info-tabs {
+    .cook-btn {
+      background: #b33;
+      font-size: 1rem;
+      padding: 12px;
+    }
+
+    button.enabled {
+      background: #b33;
+      color: #fff;
+      font-weight: bold;
+      box-shadow: 0 0 8px rgba(255, 80, 80, 0.6);
+    }
+
+    /* 下部の3ボタン */
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    /* 図鑑画面 */
+    .hidden { display: none; }
+
+    .info-tabs, .era-tabs {
       display: flex;
       gap: 6px;
+      flex-wrap: wrap;
       margin-bottom: 6px;
     }
-    .info-tab {
-      flex: 1;
+
+    .info-tab, .era-tab {
       padding: 6px;
       background: #ddd;
       border-radius: 6px;
       text-align: center;
       font-size: 0.8rem;
       cursor: pointer;
+      flex: 1;
     }
-    .info-tab.active {
+
+    .info-tab.active, .era-tab.active {
       background: #2563eb;
       color: #fff;
       font-weight: bold;
@@ -136,19 +123,11 @@
       background: #fff;
       border-radius: 10px;
       padding: 8px;
-      min-height: 120px;
+      min-height: 160px;
       font-size: 0.85rem;
       overflow-y: auto;
+      margin-bottom: 10px;
     }
-
-    .hidden {
-      display: none;
-    }
-
-    .item-name { color: #9be7a5; font-weight: bold; }
-    .recipe-name { color: #ffe082; font-weight: bold; }
-    .log .recipe-msg { color: #ffb74d; font-weight: bold; }
-    .log .era-msg { color: #4fc3f7; font-weight: bold; }
 
   </style>
 </head>
@@ -164,27 +143,31 @@
     <!-- ▼ ホーム画面 ▼ -->
     <div id="home-screen">
 
+      <!-- ログ（中央固定） -->
+      <div class="log" id="log"></div>
+
+      <!-- 上から順に：図鑑 → 次の時代 → 料理 -->
+      <button id="btn-go-zukan">図鑑へ</button>
+      <button id="btn-next-era" disabled>次の時代へ</button>
+      <button id="btn-cook" disabled class="cook-btn">料理を作る！</button>
+
+      <!-- 一番下：素材・技術・道具 -->
       <div class="actions">
         <button id="btn-material">素材探索</button>
         <button id="btn-tech">技術研究</button>
         <button id="btn-tool">道具開発</button>
       </div>
-
-      <button id="btn-cook" disabled class="cook-btn">料理を作る！</button>
-
-      <!-- ★ 条件達成で光る「次の時代へ」 -->
-      <button id="btn-next-era" disabled style="margin-top:8px; width:100%;">次の時代へ</button>
-
-      <div class="log" id="log"></div>
-
-      <button id="btn-go-zukan" style="margin-top:8px; width:100%;">図鑑へ</button>
     </div>
 
     <!-- ▼ 図鑑画面 ▼ -->
     <div id="zukan-screen" class="hidden">
 
-      <div id="era-tabs" class="era-tabs"></div>
+      <h1>図鑑</h1>
 
+      <!-- 一覧 -->
+      <div class="info-box" id="zukan-info-box"></div>
+
+      <!-- タブ（素材・技術・道具・料理） -->
       <div class="info-tabs">
         <div class="info-tab active" data-type="素材">素材</div>
         <div class="info-tab" data-type="技術">技術</div>
@@ -192,9 +175,12 @@
         <div class="info-tab" data-type="料理">料理</div>
       </div>
 
-      <div class="info-box" id="zukan-info-box"></div>
+      <!-- 時代タブ（2段表示） -->
+      <div id="era-tabs" class="era-tabs"></div>
 
-      <button id="btn-go-home" style="margin-top:8px; width:100%;">ホームへ</button>
+      <!-- 一番下：ホームへ -->
+      <button id="btn-go-home">ホームへ</button>
+
     </div>
 
   </div>
