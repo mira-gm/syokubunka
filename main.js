@@ -1,5 +1,5 @@
 // ===============================
-// パート2：ゲームロジック
+// パート2：ゲームロジック（ID判定版）
 // ===============================
 
 // ---- 時代一覧 ----
@@ -12,19 +12,19 @@ let currentEraIndex = 0;
 let viewEra = null;
 let zukanTab = "素材";
 
-// 所持データ
+// 所持データ（IDで管理）
 const owned = {
   素材: new Set(),
   技術: new Set(),
   道具: new Set()
 };
 
-// 完成した料理
+// 完成した料理（料理名で管理）
 const completed = new Set();
 
 // CSVデータ
-let dataList = [];
-let recipes = [];
+let dataList = [];   // 素材・技術・道具（ID付き）
+let recipes = [];    // 料理（ID付き）
 
 // ===============================
 // CSV 読み込み
@@ -65,24 +65,24 @@ function log(msg){
 }
 
 // ===============================
-// 「なし」対応の分解関数
+// 空欄は条件なしとして扱う
 // ===============================
-function splitNeed(str) {
-  if (!str || str === "なし") return [];
+function needID(str) {
+  if (!str) return [];
   return str.split("・").filter(x => x);
 }
 
 // ===============================
-// 時代クリア判定
+// 時代クリア判定（IDで判定）
 // ===============================
 function isEraCleared() {
   const era = eras[currentEraIndex];
 
   const items = dataList.filter(d => d.時代 === era);
 
-  const needM = items.filter(d => d.分類 === "素材").map(d => d.名前);
-  const needT = items.filter(d => d.分類 === "技術").map(d => d.名前);
-  const needD = items.filter(d => d.分類 === "道具").map(d => d.名前);
+  const needM = items.filter(d => d.分類 === "素材").map(d => d.id);
+  const needT = items.filter(d => d.分類 === "技術").map(d => d.id);
+  const needD = items.filter(d => d.分類 === "道具").map(d => d.id);
 
   const eraRecipes = recipes.filter(r => r.時代 === era).map(r => r.料理);
 
@@ -95,7 +95,7 @@ function isEraCleared() {
 }
 
 // ===============================
-// 料理作成可能判定
+// 料理作成可能判定（IDで判定）
 // ===============================
 function canCookAnyRecipe(){
   const era = eras[currentEraIndex];
@@ -103,9 +103,9 @@ function canCookAnyRecipe(){
   return recipes
     .filter(r => r.時代 === era && !completed.has(r.料理))
     .some(r => {
-      const needM = splitNeed(r.必要素材);
-      const needT = splitNeed(r.必要技術);
-      const needD = splitNeed(r.必要道具);
+      const needM = needID(r.素材ID);
+      const needT = needID(r.技術ID);
+      const needD = needID(r.道具ID);
 
       const okM = needM.every(x => owned.素材.has(x));
       const okT = needT.every(x => owned.技術.has(x));
@@ -137,18 +137,12 @@ function renderHome(){
   // 料理ボタン
   const cookBtn = document.getElementById("btn-cook");
   cookBtn.disabled = !canCookAnyRecipe();
-  if (canCookAnyRecipe()) cookBtn.classList.add("enabled");
-  else cookBtn.classList.remove("enabled");
+  cookBtn.classList.toggle("enabled", canCookAnyRecipe());
 
-  // ★ 次の時代へボタン
+  // 次の時代へ
   const nextBtn = document.getElementById("btn-next-era");
-  if (isEraCleared()) {
-    nextBtn.disabled = false;
-    nextBtn.classList.add("enabled");
-  } else {
-    nextBtn.disabled = true;
-    nextBtn.classList.remove("enabled");
-  }
+  nextBtn.disabled = !isEraCleared();
+  nextBtn.classList.toggle("enabled", isEraCleared());
 }
 
 // ===============================
@@ -198,9 +192,9 @@ function renderZukan(){
   const ownedSet = owned[zukanTab];
 
   eraItems.forEach(d => {
-    const opened = ownedSet.has(d.名前);
+    const opened = ownedSet.has(d.id);
     const div = document.createElement("div");
-    div.textContent = opened ? d.名前 : "？？？";
+    div.textContent = opened ? d.name : "？？？";
     box.appendChild(div);
   });
 }
@@ -220,14 +214,14 @@ document.querySelectorAll("#zukan-screen .info-tab").forEach(tab => {
 });
 
 // ===============================
-// 行動ボタン
+// 行動ボタン（IDで管理）
 // ===============================
 document.getElementById("btn-material").onclick = () => {
   const era = eras[currentEraIndex];
   const candidates = dataList.filter(d =>
     d.分類 === "素材" &&
     d.時代 === era &&
-    !owned.素材.has(d.名前)
+    !owned.素材.has(d.id)
   );
 
   if (candidates.length === 0) {
@@ -236,9 +230,9 @@ document.getElementById("btn-material").onclick = () => {
   }
 
   const item = candidates[Math.floor(Math.random() * candidates.length)];
-  owned.素材.add(item.名前);
+  owned.素材.add(item.id);
 
-  log(`素材発見：<span class="item-name">${item.名前}</span><br>${item.メッセージ}`);
+  log(`素材発見：<span class="item-name">${item.name}</span><br>${item.メッセージ}`);
   renderHome();
   renderZukan();
 };
@@ -248,7 +242,7 @@ document.getElementById("btn-tech").onclick = () => {
   const candidates = dataList.filter(d =>
     d.分類 === "技術" &&
     d.時代 === era &&
-    !owned.技術.has(d.名前)
+    !owned.技術.has(d.id)
   );
 
   if (candidates.length === 0) {
@@ -257,9 +251,9 @@ document.getElementById("btn-tech").onclick = () => {
   }
 
   const item = candidates[Math.floor(Math.random() * candidates.length)];
-  owned.技術.add(item.名前);
+  owned.技術.add(item.id);
 
-  log(`技術習得：<span class="item-name">${item.名前}</span><br>${item.メッセージ}`);
+  log(`技術習得：<span class="item-name">${item.name}</span><br>${item.メッセージ}`);
   renderHome();
   renderZukan();
 };
@@ -269,7 +263,7 @@ document.getElementById("btn-tool").onclick = () => {
   const candidates = dataList.filter(d =>
     d.分類 === "道具" &&
     d.時代 === era &&
-    !owned.道具.has(d.名前)
+    !owned.道具.has(d.id)
   );
 
   if (candidates.length === 0) {
@@ -278,23 +272,23 @@ document.getElementById("btn-tool").onclick = () => {
   }
 
   const item = candidates[Math.floor(Math.random() * candidates.length)];
-  owned.道具.add(item.名前);
+  owned.道具.add(item.id);
 
-  log(`道具開発：<span class="item-name">${item.名前}</span><br>${item.メッセージ}`);
+  log(`道具開発：<span class="item-name">${item.name}</span><br>${item.メッセージ}`);
   renderHome();
   renderZukan();
 };
 
 // ===============================
-// 料理作成
+// 料理作成（IDで判定）
 // ===============================
 document.getElementById("btn-cook").onclick = () => {
   const era = eras[currentEraIndex];
 
   const available = recipes.filter(r => {
-    const needM = splitNeed(r.必要素材);
-    const needT = splitNeed(r.必要技術);
-    const needD = splitNeed(r.必要道具);
+    const needM = needID(r.素材ID);
+    const needT = needID(r.技術ID);
+    const needD = needID(r.道具ID);
 
     const okM = needM.every(x => owned.素材.has(x));
     const okT = needT.every(x => owned.技術.has(x));
@@ -320,7 +314,7 @@ document.getElementById("btn-cook").onclick = () => {
 };
 
 // ===============================
-// ★ 次の時代へ
+// 次の時代へ
 // ===============================
 document.getElementById("btn-next-era").onclick = () => {
   if (currentEraIndex < eras.length - 1) {
