@@ -65,6 +65,14 @@ function log(msg){
 }
 
 // ===============================
+// 「なし」対応の分解関数
+// ===============================
+function splitNeed(str) {
+  if (!str || str === "なし") return [];
+  return str.split("・").filter(x => x);
+}
+
+// ===============================
 // 時代クリア判定
 // ===============================
 function isEraCleared() {
@@ -95,13 +103,13 @@ function canCookAnyRecipe(){
   return recipes
     .filter(r => r.時代 === era && !completed.has(r.料理))
     .some(r => {
-      const needM = r.必要素材 ? r.必要素材.split("・") : [];
-      const needT = r.必要技術 ? r.必要技術.split("・") : [];
-      const needD = r.必要道具 ? r.必要道具.split("・") : [];
+      const needM = splitNeed(r.必要素材);
+      const needT = splitNeed(r.必要技術);
+      const needD = splitNeed(r.必要道具);
 
-      const okM = needM.length === 0 || needM.every(x => owned.素材.has(x));
-      const okT = needT.length === 0 || needT.every(x => owned.技術.has(x));
-      const okD = needD.length === 0 || needD.every(x => owned.道具.has(x));
+      const okM = needM.every(x => owned.素材.has(x));
+      const okT = needT.every(x => owned.技術.has(x));
+      const okD = needD.every(x => owned.道具.has(x));
 
       return okM && okT && okD;
     });
@@ -284,13 +292,13 @@ document.getElementById("btn-cook").onclick = () => {
   const era = eras[currentEraIndex];
 
   const available = recipes.filter(r => {
-    const needM = r.必要素材 ? r.必要素材.split("・") : [];
-    const needT = r.必要技術 ? r.必要技術.split("・") : [];
-    const needD = r.必要道具 ? r.必要道具.split("・") : [];
+    const needM = splitNeed(r.必要素材);
+    const needT = splitNeed(r.必要技術);
+    const needD = splitNeed(r.必要道具);
 
-    const okM = needM.length === 0 || needM.every(x => owned.素材.has(x));
-    const okT = needT.length === 0 || needT.every(x => owned.技術.has(x));
-    const okD = needD.length === 0 || needD.every(x => owned.道具.has(x));
+    const okM = needM.every(x => owned.素材.has(x));
+    const okT = needT.every(x => owned.技術.has(x));
+    const okD = needD.every(x => owned.道具.has(x));
 
     return (
       r.時代 === era &&
