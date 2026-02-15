@@ -70,6 +70,14 @@
       padding: 12px;
     }
 
+    /* ★ 押せるようになったボタンを光らせる */
+    button.enabled {
+      background: #b33;
+      color: #fff;
+      font-weight: bold;
+      box-shadow: 0 0 8px rgba(255, 80, 80, 0.6);
+    }
+
     .log {
       background:#111;
       color:#0f0;
@@ -164,8 +172,8 @@
 
       <button id="btn-cook" disabled class="cook-btn">料理を作る！</button>
 
-      <!-- ★ 追加：次の時代へボタン -->
-      <button id="btn-next-era" style="margin-top:8px; width:100%;">次の時代へ</button>
+      <!-- ★ 条件達成で光る「次の時代へ」 -->
+      <button id="btn-next-era" disabled style="margin-top:8px; width:100%;">次の時代へ</button>
 
       <div class="log" id="log"></div>
 

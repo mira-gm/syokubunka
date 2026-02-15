@@ -1,5 +1,5 @@
 // ===============================
-// パート2：ゲームロジック（CSV読み込み＋2画面UI）
+// パート2：ゲームロジック
 // ===============================
 
 // ---- 時代一覧 ----
@@ -65,6 +65,28 @@ function log(msg){
 }
 
 // ===============================
+// 時代クリア判定
+// ===============================
+function isEraCleared() {
+  const era = eras[currentEraIndex];
+
+  const items = dataList.filter(d => d.時代 === era);
+
+  const needM = items.filter(d => d.分類 === "素材").map(d => d.名前);
+  const needT = items.filter(d => d.分類 === "技術").map(d => d.名前);
+  const needD = items.filter(d => d.分類 === "道具").map(d => d.名前);
+
+  const eraRecipes = recipes.filter(r => r.時代 === era).map(r => r.料理);
+
+  const okM = needM.every(x => owned.素材.has(x));
+  const okT = needT.every(x => owned.技術.has(x));
+  const okD = needD.every(x => owned.道具.has(x));
+  const okR = eraRecipes.every(x => completed.has(x));
+
+  return okM && okT && okD && okR;
+}
+
+// ===============================
 // 料理作成可能判定
 // ===============================
 function canCookAnyRecipe(){
@@ -104,8 +126,21 @@ function renderHome(){
   };
   document.getElementById("era-image").src = imageMap[eraName];
 
+  // 料理ボタン
   const cookBtn = document.getElementById("btn-cook");
   cookBtn.disabled = !canCookAnyRecipe();
+  if (canCookAnyRecipe()) cookBtn.classList.add("enabled");
+  else cookBtn.classList.remove("enabled");
+
+  // ★ 次の時代へボタン
+  const nextBtn = document.getElementById("btn-next-era");
+  if (isEraCleared()) {
+    nextBtn.disabled = false;
+    nextBtn.classList.add("enabled");
+  } else {
+    nextBtn.disabled = true;
+    nextBtn.classList.remove("enabled");
+  }
 }
 
 // ===============================
@@ -297,18 +332,4 @@ document.getElementById("btn-next-era").onclick = () => {
 // ===============================
 document.getElementById("btn-go-zukan").onclick = () => {
   document.getElementById("home-screen").classList.add("hidden");
-  document.getElementById("zukan-screen").classList.remove("hidden");
-  buildEraTabs();
-  renderZukan();
-};
-
-document.getElementById("btn-go-home").onclick = () => {
-  document.getElementById("zukan-screen").classList.add("hidden");
-  document.getElementById("home-screen").classList.remove("hidden");
-  renderHome();
-};
-
-// ===============================
-// 初期化
-// ===============================
-loadCSV();
+  document.getElementById("zukan-screen").classList.remove("
